@@ -1,0 +1,245 @@
+software =
+{
+    version = "${RBXOS_SW_VERSION}";
+    cn9130-cf-base = {
+        hardware-compatibility: [ "1.0.0", "1.5.0" ];
+        stable : {
+            copy1sdcard : {
+                images: (
+                    {
+                        filename = "rbxos-image-cn9130-cf-base.squashfs.aes";
+                        device = "/dev/mmcblk1p5";
+                        sha256 = "@rbxos-image-cn9130-cf-base.squashfs.aes";
+                        encrypted = true;
+                    }
+                );
+                files: (
+                    {
+                        filename = "flash-image.bin";
+                        path = "/tmp/fsbl/flash-image.bin";
+                        sha256 = "@flash-image.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.bin";
+                        path = "/mnt/bootfiles/Image";
+                        sha256 = "@Image-cn9130-cf-base.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/Image.version";
+                        sha256 = "@Image-cn9130-cf-base.version";
+                    },
+                    {
+                        filename = "cn9130-cf-base-cn9130-cf-base.dtb";
+                        path = "/mnt/bootfiles/cn9130-cf-base.dtb";
+                        sha256 = "@cn9130-cf-base-cn9130-cf-base.dtb";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/initrd.version";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
+                    }
+                );
+                scripts: (
+                    {
+                        filename = "update.sh";
+                        type = "shellscript";
+                        sha256 = "@update.sh";
+                    }
+                );
+                uboot: (
+                    {
+                        name = "rootpartition";
+                        value = "5";
+                    },
+                    {
+                        name = "partid";
+                        value = "1";
+                    }
+                );
+            };
+            copy2sdcard : {
+                images: (
+                    {
+                        filename = "rbxos-image-cn9130-cf-base.squashfs.aes";
+                        device = "/dev/mmcblk1p6";
+                        sha256 = "@rbxos-image-cn9130-cf-base.squashfs.aes";
+                        encrypted = true;
+                    }
+                );
+                files: (
+                    {
+                        filename = "flash-image.bin";
+                        path = "/tmp/fsbl/flash-image.bin";
+                        sha256 = "@flash-image.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.bin";
+                        path = "/mnt/bootfiles/Image";
+                        sha256 = "@Image-cn9130-cf-base.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/Image.version";
+                        sha256 = "@Image-cn9130-cf-base.version";
+                    },
+                    {
+                        filename = "cn9130-cf-base-cn9130-cf-base.dtb";
+                        path = "/mnt/bootfiles/cn9130-cf-base.dtb";
+                        sha256 = "@cn9130-cf-base-cn9130-cf-base.dtb";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/initrd.version";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
+                    }
+                );
+                scripts: (
+                    {
+                        filename = "update.sh";
+                        type = "shellscript";
+                        sha256 = "@update.sh";
+                    }
+                );
+                uboot: (
+                    {
+                        name = "rootpartition";
+                        value = "6";
+                    },
+                    {
+                        name = "partid";
+                        value = "2";
+                    }
+                );
+            };
+            copy1emmc : {
+                images: (
+                    {
+                        filename = "rbxos-image-cn9130-cf-base.squashfs.aes";
+                        device = "/dev/mmcblk0p5";
+                        sha256 = "@rbxos-image-cn9130-cf-base.squashfs.aes";
+                        encrypted = true;
+                    }
+                );
+                files: (
+                    {
+                        filename = "flash-image.bin";
+                        path = "/tmp/fsbl/flash-image.bin";
+                        sha256 = "@flash-image.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.bin";
+                        path = "/mnt/bootfiles/Image";
+                        sha256 = "@Image-cn9130-cf-base.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/Image.version";
+                        sha256 = "@Image-cn9130-cf-base.version";
+                    },
+                    {
+                        filename = "cn9130-cf-base-cn9130-cf-base.dtb";
+                        path = "/mnt/bootfiles/cn9130-cf-base.dtb";
+                        sha256 = "@cn9130-cf-base-cn9130-cf-base.dtb";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/initrd.version";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
+                    }
+                );
+                scripts: (
+                    {
+                        filename = "update.sh";
+                        type = "shellscript";
+                        sha256 = "@update.sh";
+                    }
+                );
+                uboot: (
+                    {
+                        name = "rootpartition";
+                        value = "5";
+                    },
+                    {
+                        name = "partid";
+                        value = "1";
+                    }
+                );
+            };
+            copy2emmc : {
+                images: (
+                    {
+                        filename = "rbxos-image-cn9130-cf-base.squashfs.aes";
+                        device = "/dev/mmcblk0p6";
+                        sha256 = "@rbxos-image-cn9130-cf-base.squashfs.aes";
+                        encrypted = true;
+                    }
+                );
+                files: (
+                    {
+                        filename = "flash-image.bin";
+                        path = "/tmp/fsbl/flash-image.bin";
+                        sha256 = "@flash-image.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.bin";
+                        path = "/mnt/bootfiles/Image";
+                        sha256 = "@Image-cn9130-cf-base.bin";
+                    },
+                    {
+                        filename = "Image-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/Image.version";
+                        sha256 = "@Image-cn9130-cf-base.version";
+                    },
+                    {
+                        filename = "cn9130-cf-base-cn9130-cf-base.dtb";
+                        path = "/mnt/bootfiles/cn9130-cf-base.dtb";
+                        sha256 = "@cn9130-cf-base-cn9130-cf-base.dtb";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
+                    },
+                    {
+                        filename = "rbxos-ramdisk-cn9130-cf-base.version";
+                        path = "/mnt/bootfiles/initrd.version";
+                        sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
+                    }
+                );
+                scripts: (
+                    {
+                        filename = "update.sh";
+                        type = "shellscript";
+                        sha256 = "@update.sh";
+                    }
+                );
+                uboot: (
+                    {
+                        name = "rootpartition";
+                        value = "6";
+                    },
+                    {
+                        name = "partid";
+                        value = "2";
+                    }
+                );
+            };
+        };
+    };
+};

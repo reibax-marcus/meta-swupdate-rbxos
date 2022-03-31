@@ -1,0 +1,287 @@
+From bf21e2032c4a6e2251e1678e737a33af3cdb6d92 Mon Sep 17 00:00:00 2001
+From: Xabier Marquiegui <reibax@gmail.com>
+Date: Fri, 11 Mar 2022 09:38:54 +0100
+Subject: [PATCH 2/3] feature: add reset-factory actions
+
+---
+ core/installer.c                       | 18 ++++++++++++++
+ core/network_thread.c                  |  6 +++++
+ examples/www/v2/index.rbxos.html     | 28 ++++++++++++++++++---
+ examples/www/v2/js/swupdate.rbxos.js | 20 +++++++++++++--
+ include/installer.h                    |  1 +
+ include/network_ipc.h                  |  6 +++++
+ ipc/network_ipc.c                      | 16 ++++++++++++
+ mongoose/mongoose_interface.c          | 34 ++++++++++++++++++++++++++
+ 8 files changed, 123 insertions(+), 6 deletions(-)
+
+diff --git a/core/installer.c b/core/installer.c
+index 5e4cbe5..9660f93 100644
+--- a/core/installer.c
++++ b/core/installer.c
+@@ -481,3 +481,21 @@ int postupdate(struct swupdate_cfg *swcfg, const char *info)
+ 
+ 	return 0;
+ }
++
++int factoryreset(char *frflags)
++{
++	char cmd[128];
++	int ret;
++	strcpy(cmd, "/usr/bin/factory_reset ");
++	strcat(cmd, frflags);
++	INFO("FactoryReset: Launch with arguments: %s", frflags);
++	ret = system(cmd);
++	if (WIFEXITED(ret)) {
++		DEBUG("Factory-reset command returned %d", WEXITSTATUS(ret));
++	} else {
++		ERROR("Factory-reset command returned %d: '%s'", ret, strerror(errno));
++		return -1;
++	}
++
++	return 0;
++}
+\ No newline at end of file
+diff --git a/core/network_thread.c b/core/network_thread.c
+index 1b63690..d87bd51 100644
+--- a/core/network_thread.c
++++ b/core/network_thread.c
+@@ -504,6 +504,12 @@ void *network_thread (void *data)
+ 					sprintf(msg.data.msg, "Post-update actions failed.");
+ 				}
+ 				break;
++			case FACTORYRESET:
++				if (factoryreset(msg.data.rfdata.fr_args) == 0) {
++					sprintf(msg.data.msg, "Factory-reset actions successfully executed.");
++				} else {
++					sprintf(msg.data.msg, "Factory-actions actions failed.");
++				}
+ 			case SWUPDATE_SUBPROCESS:
+ 				subprocess_msg = (struct subprocess_msg_elem*)malloc(
+ 						sizeof(struct subprocess_msg_elem));
+diff --git a/examples/www/v2/index.rbxos.html b/examples/www/v2/index.rbxos.html
+index c0dd348..d838246 100755
+--- a/examples/www/v2/index.rbxos.html
++++ b/examples/www/v2/index.rbxos.html
+@@ -33,6 +33,18 @@
+             </li>
+           </ul>
+         </div>
++        <div class="collapse navbar-collapse" id="navbarText">
++          <ul class="navbar-nav ml-auto">
++            <form id="FRform" method="post">
++              <input name="fr_sys" id="fr_sys" type="checkbox">SYS
++              <input name="fr_nnet" id="fr_nnet" type="checkbox">nNET
++              <input name="fr_onet" id="fr_onet" type="checkbox">oNET<br>
++              <input name="fr_crd" id="fr_crd" type="checkbox">CRD
++              <input name="fr_hdd" id="fr_hdd" type="checkbox">HDD<br>
++              <input type="button" id="submitFormData" onclick="factory_reset()" value="Factory Reset">
++            </form>
++          </ul>
++        </div>
+       </div>
+     </nav>
+     <!-- Use Bootstrap Grid Container -->
+@@ -43,7 +55,15 @@
+           <span class="text-primary">SW</span>Update
+         </h1>
+         <p class="lead">Software update for embedded systems</p>
+-        <p>Upload a software image below, or restart the system at the top right corner.</p>
++        <p>Upload a software image below or restart the system at the top right.<br>
++          If you wish, you could also perform a factory reset operation.<br>
++          You can select one or many out of these actions:<br>
++          &nbsp&nbsp&nbsp&nbspSYS: Reset system memory to factory status (overrides any other alternative that was meant to preserve something)<br>
++          &nbsp&nbsp&nbspnNET: Reset system memory to factory status, but keep network configuration<br>
++          &nbsp&nbsp&nbspoNET: Restore factory default network configuration<br>
++          &nbsp&nbsp&nbsp&nbspCRD: Restore factory default access credentials<br>
++          &nbsp&nbsp&nbsp&nbspHDD: Repartition and reformat SATA disk<br>
++        </p>
+       </div>
+       <div class="row my-3">
+         <div class="col">
+@@ -95,7 +115,7 @@
+             <div class="card-header" id="headingMessages">
+               <a class="h5 collapsed" data-toggle="collapse" href="#collapseMessages" aria-expanded="false" aria-controls="collapseMessages">
+                 <i class="fas"></i> Messages </a>
+-            </div>
++              </div>
+             <div id="collapseMessages" class="collapse" aria-labelledby="headingMessages">
+               <div class="card-body" id="messages"></div>
+             </div>
+@@ -110,7 +130,7 @@
+               <div class="media">
+                 <i class="fas fa-spinner fa-spin fa-3x align-self-center mr-3"></i>
+                 <div class="media-body align-self-center">
+-                  <h5 class="mt-0 mb-0">The system will restart. Please be patient, as restarting takes about one minute.</h5>
++                  <h5 class="mt-0 mb-0">The system will restart. Please be patient, as restarting can take a while.</h5>
+                 </div>
+               </div>
+             </div>
+@@ -118,5 +138,5 @@
+         </div>
+       </div>
+     </div>
+-  </body>undefined
++  </body>
+ </html>
+\ No newline at end of file
+diff --git a/examples/www/v2/js/swupdate.rbxos.js b/examples/www/v2/js/swupdate.rbxos.js
+index 35615df..3568c70 100644
+--- a/examples/www/v2/js/swupdate.rbxos.js
++++ b/examples/www/v2/js/swupdate.rbxos.js
+@@ -1,13 +1,29 @@
+ /*!
+  * Copyright (C) 2017-2018 Weidmüller Interface GmbH & Co. KG
+  * Stefan Herbrechtsmeier <stefan.herbrechtsmeier@weidmueller.com>
++ * This is a beautified and customized version of swupdate.min.js
++ * Customization by <reibax@gmail.com>
+  *
+  * SPDX-License-Identifier: MIT
+  */
+ function restart() {
+-	$.post("restart", {}, function(s) {
++	$.post("restart", {}, (function(s) {
+ 		showRestart()
+-	})
++	}))
++}
++
++function factory_reset() {
++	var s = "";
++	if ($("#fr_sys").is(":checked")) s += "SYS ";
++    if ($("#fr_nnet").is(":checked")) s += "nNET ";
++    if ($("#fr_onet").is(":checked")) s += "oNET ";
++    if ($("#fr_crd").is(":checked")) s += "CRD ";
++    if ($("#fr_hdd").is(":checked")) s += "HDD ";
++    $.post("factory_reset", {
++		fr_args: s
++	}, (function(s) {
++		showRestart()
++	}))
+ }
+ 
+ function showRestart() {
+diff --git a/include/installer.h b/include/installer.h
+index 80aa442..fc80e26 100644
+--- a/include/installer.h
++++ b/include/installer.h
+@@ -22,6 +22,7 @@ int install_single_image(struct img_type *img, bool dry_run);
+ int install_from_file(const char *filename, bool check);
+ int postupdate(struct swupdate_cfg *swcfg, const char *info);
+ int preupdatecmd(struct swupdate_cfg *swcfg);
++int factoryreset(char *frflags);
+ void cleanup_files(struct swupdate_cfg *software);
+ 
+ #endif
+diff --git a/include/network_ipc.h b/include/network_ipc.h
+index 6dc2521..6acc387 100644
+--- a/include/network_ipc.h
++++ b/include/network_ipc.h
+@@ -32,6 +32,7 @@ typedef enum {
+ 	NACK,
+ 	GET_STATUS,
+ 	POST_UPDATE,
++	FACTORYRESET,
+ 	SWUPDATE_SUBPROCESS,
+ 	SET_AES_KEY,
+ 	SET_UPDATE_STATE,	/* set bootloader ustate */
+@@ -115,6 +116,10 @@ typedef union {
+ 		char maximum_version[256];
+ 		char current_version[256];
+ 	} versions;
++	struct {
++		// Estimated max string size when all flags are activated
++		char fr_args[64];
++	} rfdata;
+ } msgdata;
+ 	
+ typedef struct {
+@@ -133,6 +138,7 @@ int ipc_get_status_timeout(ipc_message *msg, unsigned int timeout_ms);
+ int ipc_notify_connect(void);
+ int ipc_notify_receive(int *connfd, ipc_message *msg);
+ int ipc_postupdate(ipc_message *msg);
++int ipc_factoryreset(ipc_message *msg);
+ int ipc_send_cmd(ipc_message *msg);
+ 
+ typedef int (*writedata)(char **buf, int *size);
+diff --git a/ipc/network_ipc.c b/ipc/network_ipc.c
+index 5ccc18b..41ca953 100644
+--- a/ipc/network_ipc.c
++++ b/ipc/network_ipc.c
+@@ -92,6 +92,22 @@ int ipc_postupdate(ipc_message *msg) {
+ 	return -result;
+ }
+ 
++int ipc_factoryreset(ipc_message *msg) {
++	int connfd = prepare_ipc();
++	if (connfd < 0)
++		return -1;
++
++	msg->magic = IPC_MAGIC;
++	msg->type = FACTORYRESET;
++
++	int result = write(connfd, msg, sizeof(*msg)) != sizeof(*msg) ||
++		read(connfd, msg, sizeof(*msg)) != sizeof(*msg);
++
++	close(connfd);
++	return -result;
++}
++
++
+ static int __ipc_get_status(int connfd, ipc_message *msg, unsigned int timeout_ms)
+ {
+ 	fd_set fds;
+diff --git a/mongoose/mongoose_interface.c b/mongoose/mongoose_interface.c
+index 851a17b..b87f4e4 100644
+--- a/mongoose/mongoose_interface.c
++++ b/mongoose/mongoose_interface.c
+@@ -137,6 +137,39 @@ static int level_to_rfc_5424(int level)
+ 	}
+ }
+ 
++static void factory_reset_handler(struct mg_connection *nc, int ev, void *ev_data)
++{
++	struct http_message *hm = (struct http_message *) ev_data;
++	ipc_message msg = {};
++	uint16_t i;
++
++	if (ev == MG_EV_HTTP_REQUEST) {
++		if(mg_vcasecmp(&hm->method, "POST") != 0) {
++			mg_http_send_error(nc, 405, "Method Not Allowed");
++			return;
++		}
++
++		// Copy message body starting after variable name
++		// 'fr_args=' = 8 bytes offset
++		strcpy(msg.data.rfdata.fr_args, (hm->body.p+8));
++		// Add null byte to string end. Buffer doesn't come with a null character.
++		msg.data.rfdata.fr_args[hm->body.len-8]='\0';
++		// HTTP post doesn't allow the use of space
++		// Replace all '+' with ' '
++		for (i=0; i<strlen(msg.data.rfdata.fr_args);i++) {
++			if (msg.data.rfdata.fr_args[i] == '+') msg.data.rfdata.fr_args[i] = ' ';
++		}
++
++		int ret = ipc_factoryreset(&msg);
++		if (ret || msg.type != ACK) {
++			mg_http_send_error(nc, 500, "Failed to queue command");
++			return;
++		}
++
++		mg_http_send_error(nc, 201, "Device will reboot now.");
++	}
++}
++
+ static void broadcast_callback(struct mg_connection *nc, int ev, void *ev_data)
+ {
+ 	char *buf = (char *) ev_data;
+@@ -634,6 +667,7 @@ int start_mongoose(const char *cfgfname, int argc, char *argv[])
+ 
+ 	mg_set_protocol_http_websocket(nc);
+ 	mg_register_http_endpoint(nc, "/restart", restart_handler);
++	mg_register_http_endpoint(nc, "/factory_reset", factory_reset_handler);
+ 	mg_register_http_endpoint(nc, "/upload", MG_CB(upload_handler, NULL));
+ 	mg_start_thread(broadcast_message_thread, &mgr);
+ 	mg_start_thread(broadcast_progress_thread, &mgr);
+-- 
+2.25.1
+

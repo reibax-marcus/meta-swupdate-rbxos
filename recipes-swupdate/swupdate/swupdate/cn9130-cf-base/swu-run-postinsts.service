@@ -1,0 +1,12 @@
+[Unit]
+Description=SWUpdate postinst actions
+Before=install-ssh-keys.service
+Before=swupdate.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=no
+ExecStart=/usr/bin/swu-run-postinsts
+
+[Install]
+WantedBy=multi-user.target

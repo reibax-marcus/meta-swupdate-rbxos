@@ -1,0 +1,34 @@
+#!/bin/bash
+
+SWU_POSTINST_SYSDIR="/etc/swu-postinst"
+# Mark that lets postinst know that it doesn't need to populate the enabled symlinks
+POPULATE_PENDING_MARK="${SWU_POSTINST_SYSDIR}/populate_pending"
+# Complete list of postinst actions
+POSTINST_COLLECTION_DIR="${SWU_POSTINST_SYSDIR}/collection"
+# Symlinks to the postinst script collection must be removed on succesful execution of script
+POSTINST_ACTIONDIR="${SWU_POSTINST_SYSDIR}/enabled"
+mkdir -p "${POSTINST_ACTIONDIR}"
+
+# Check if populate mark done is present
+if [ -e "${POPULATE_PENDING_MARK}" ] ; then
+    # For every file in collection create a symlink in enabled
+    cd "${POSTINST_COLLECTION_DIR}" || { echo "SWU Postinst: No postinst scripts in collection" ; exit 1 ; }
+    { find . -type f ; find . -type l ; } | sort |
+        while IFS='' read -r file ; do
+            ln -sfT "${POSTINST_COLLECTION_DIR}/$file" "${POSTINST_ACTIONDIR}/$file" ||
+                { echo "SWU Postinst: Error while trying to enable postinst action $file" ; exit 1 ; }
+        done
+    rm -f "${POPULATE_PENDING_MARK}"
+    sync
+fi
+
+# Run every symlink in enabled actions directory, if return code is 0, delete the symlink
+# For now any error situation in this stage will result in a retry on next reboot
+# We might consider certain return codes that could cause a boot device revert and reboot
+cd ${POSTINST_ACTIONDIR} || { echo "SWU Postinst: Could not enter postinst action directory" ; exit 1 ; }
+{ find . -type f ; find . -type l ; } | sort |
+    while IFS='' read -r postinst_action ; do
+        echo "Running ${postinst_action}..."
+        "./${postinst_action}" && { echo "DONE" ; rm -f "./${postinst_action}" ; }
+    done
+

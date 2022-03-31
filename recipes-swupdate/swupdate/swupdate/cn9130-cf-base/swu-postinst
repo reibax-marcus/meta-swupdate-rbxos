@@ -1,0 +1,4 @@
+#!/bin/bash
+
+# Delete SW versions file
+rm -f /etc/sw-versions

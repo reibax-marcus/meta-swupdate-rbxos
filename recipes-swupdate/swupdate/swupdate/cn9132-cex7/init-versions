@@ -1,0 +1,170 @@
+#!/bin/sh
+
+clean_exit() {
+    eval "${EXIT_STEPS}"
+}
+
+trap clean_exit EXIT TERM INT ABRT HUP
+EXIT_STEPS=""
+
+get_boot_device()
+{
+    # shellcheck disable=SC2013
+    for i in $(cat /proc/cmdline); do
+        case "$i" in
+            root=*)
+                ROOT="${i#root=}"
+                ;;
+        esac
+    done
+    if [ "${ROOT}" = "unknown" ] || [ -z "${ROOT}" ] || [ ! -e "${ROOT}" ] ; then
+        echo "ERROR: root partition not found in cmdline. ${ROOT}" >&2
+        exit 1
+    fi
+    BOOTDEV="$(basename "${ROOT}" | cut -d'p' -f1)"
+    if [ -z "${BOOTDEV}" ] || [ ! -e "/dev/${BOOTDEV}" ] ; then
+        echo "ERROR: root partition not found in cmdline. ${BOOTDEV}" >&2
+        exit 1
+    fi
+}
+
+get_partition_for_bootfiles()
+{
+    if [ "${ROOT}" = "/dev/${BOOTDEV}p5" ] ; then
+        echo "p1"
+    else
+        echo "p2"
+    fi
+}
+
+# Umount the bootfiles partition
+umount_bootpart() {
+    umount "${TMP_BOOTMOUNT}"
+    UMOUNT_WAIT=0
+    UMOUNT_LAZY_TIMEOUT=5
+    UMOUNT_ERROR_TIMEOUT=10
+    while mount | grep -q "${TMP_BOOTMOUNT}" ; do
+        pwd
+        for i in $(fuser "${TMP_BOOTMOUNT}") ; do
+            if [ -e "/proc/$i/cmdline" ] ; then
+                cat "/proc/$i/cmdline"
+            fi
+            echo
+        done
+        if [ $UMOUNT_WAIT -ge $UMOUNT_LAZY_TIMEOUT ] ; then
+            umount -fl "${TMP_BOOTMOUNT}"
+        fi
+        if [ ${UMOUNT_WAIT} -ge ${UMOUNT_ERROR_TIMEOUT} ] ; then
+            echo "ERROR: Unable to umount ${TMP_BOOTMOUNT}"
+            return 1
+        fi
+        echo "Waiting for ${TMP_BOOTMOUNT} umount"
+        sleep 1
+        UMOUNT_WAIT="$((UMOUNT_WAIT+1))"
+    done
+}
+
+echo "$0: regen-sw-versions called"
+# SWUpgrade system uses this file to decide if it needs to upgrade a software component
+FSWVERSIONS="/etc/sw-versions"
+FSYSINFO="/etc/system-information"
+HWVERSIONDST="/etc/hwrevision"
+HWVERSIONSRC="/sys/firmware/devicetree/base/factory/hwver"
+
+# Get real hardware version from device tree
+if [ ! -e "${HWVERSIONSRC}" ] ; then
+    echo "WARNING: Hardware version file ${HWVERSIONSRC} not found." >&2
+    echo "SWUpgrade might malfunction." >&2
+else
+    # Make sure that we upgrade local hw version file with device tree value
+    HWVERSION="$(tr -d '\0' < ${HWVERSIONSRC})"
+    grep -q "\ ${HWVERSION}$" "${HWVERSIONDST}" 2>/dev/null || {
+        echo "$(uname -n) ${HWVERSION}" > "${HWVERSIONDST}"
+        sync ;
+    }
+fi
+
+# The signal that we need to update the version list is the fact that it doesn't exist
+if [ ! -e "${FSWVERSIONS}" ] ; then
+    # Initialize and make sure that the temporary workdir is cleaned on exit
+    TEMP_DIR="/tmp/rbxos_up_$$"
+    mkdir -p "${TEMP_DIR}"
+    EXIT_STEPS="rm -fr \"${TEMP_DIR}\"; ${EXIT_STEPS}"
+
+    # Tempdir variables
+    TMP_VERFILE="${TEMP_DIR}/sw-versions"
+    TMP_BOOTMOUNT="${TEMP_DIR}/bootmount"
+    TMP_SYSINF="${TEMP_DIR}/system-information"
+
+    # Extract system information
+    SERIAL="$(cat /sys/firmware/devicetree/base/factory/serial)"
+    # shellcheck disable=SC2236
+    if [ ! -z "${SERIAL}" ] ; then
+        echo "serial=${SERIAL}" > "${TMP_SYSINF}"
+    fi
+    MODEL="$(uname -n)"
+    # shellcheck disable=SC2236
+    if [ ! -z "${MODEL}" ] ; then
+        echo "model=${MODEL}" >> "${TMP_SYSINF}"
+    fi
+    HWVER="$(cat /sys/firmware/devicetree/base/factory/hwver)"
+    # shellcheck disable=SC2236
+    if [ ! -z "${HWVER}" ] ; then
+        echo "hwver=${HWVER}" >> "${TMP_SYSINF}"
+    fi
+
+    # Extract system version
+    ROOTFS_VERSION="$(grep RBXOS_SW_VERSION /etc/build | cut -d= -f2-)"
+    # shellcheck disable=SC2236
+    if [ ! -z "${ROOTFS_VERSION}" ] ; then
+        echo "rootfs ${ROOTFS_VERSION}" > "${TMP_VERFILE}"
+        echo "rootfs=${ROOTFS_VERSION}" >> "${TMP_SYSINF}"
+    fi
+
+    # Mount the bootfiles partition
+    mkdir -p "${TMP_BOOTMOUNT}"
+    get_boot_device
+    mount -o ro "/dev/${BOOTDEV}$(get_partition_for_bootfiles)" "${TMP_BOOTMOUNT}"
+    EXIT_STEPS="umount_bootpart; ${EXIT_STEPS}"
+
+    # Extract bootfile versions
+    if cd "${TMP_BOOTMOUNT}" ; then
+        for file in *.version ; do
+            if [ "${file}" = '*.version' ] ; then
+                echo "ERROR: No .version files found in this directory ($(pwd))"
+            else
+                # shellcheck disable=SC2010,SC2086
+                for checkfile in $(ls ${file%.version}* | grep -v "\.version") ; do
+                    SHASUM="$(sha256sum "$checkfile" | cut -d' ' -f1)"
+                    if grep -q "^${SHASUM}\ " "$file" ; then
+                        echo "$checkfile $(grep "^version=" "$file" | cut -d= -f2-)" >> "${TMP_VERFILE}"
+                        echo "OK: Checksum validated for file $checkfile"
+                    else
+                        echo "ERROR: Checksum failed for file $checkfile"
+                    fi
+                done
+            fi
+        done
+    else
+        echo "ERROR: Could not cd to ${TMP_BOOTMOUNT}"
+    fi
+    cd "/" || :
+
+    # Move version file to final location
+    cp "${TMP_VERFILE}" "${FSWVERSIONS}"
+    cp "${TMP_SYSINF}" "${FSYSINFO}"
+    sync
+
+    # Generate custom web information
+    WEB_TEMPLATE="/var/lib/swupdate/index.html.template"
+    WEB_FILE="/www/swupdate/index.html"
+    DYNAMIC_TEXT="\
+$(sed 's,$,<br>,g' ${FSWVERSIONS} | sed 's, \+,: ,g')
+Root part: $(echo "${ROOT}" | sed 's,/dev/mmcblk.*p,,g')<br>
+Boot part: $(get_partition_for_bootfiles)<br>\
+"
+    # shellcheck disable=SC2086
+    sed "s/UPGRADE-INFO/$(echo ${DYNAMIC_TEXT} | tr '\r\n' ' ')/g" "${WEB_TEMPLATE}" > "${WEB_FILE}"
+else
+    echo "/etc/sw-versions already exists. Skipping..."
+fi
