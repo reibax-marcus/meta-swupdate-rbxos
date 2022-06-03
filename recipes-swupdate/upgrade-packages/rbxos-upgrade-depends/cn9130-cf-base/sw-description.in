@@ -36,12 +36,12 @@ software =
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
-                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.version";
-                        path = "/mnt/bootfiles/initrd.version";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.version";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
                     }
                 );
@@ -95,12 +95,12 @@ software =
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
-                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.version";
-                        path = "/mnt/bootfiles/initrd.version";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.version";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
                     }
                 );
@@ -154,12 +154,12 @@ software =
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
-                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.version";
-                        path = "/mnt/bootfiles/initrd.version";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.version";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
                     }
                 );
@@ -213,12 +213,12 @@ software =
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
-                        path = "/mnt/bootfiles/initrd.cpio.ub";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.cpio.gz.u-boot";
                     },
                     {
                         filename = "rbxos-ramdisk-cn9130-cf-base.version";
-                        path = "/mnt/bootfiles/initrd.version";
+                        path = "/mnt/bootfiles/rbxos-ramdisk-cn9130-cf-base.version";
                         sha256 = "@rbxos-ramdisk-cn9130-cf-base.version";
                     }
                 );
